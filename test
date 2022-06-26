@@ -1,0 +1,212 @@
+1.
+Lexical with NFA
+
+#include<stdio.h>
+#include<string.h>
+void main()
+{
+ char re[20];
+ int q[20][3],i,j,len,a,b;
+ for(a=0;a<20;a++)
+ {
+ for(b=0;b<3;b++)
+ {
+ q[a][b]=0;
+ }
+ }
+ printf("Enter the Regular expression:\n");
+ scanf("%s",re);
+ len=strlen(re);
+ i=0;j=1;
+ while(i<len)
+ {
+ if(re[i]=='a'&&re[i+1]!='/'&&re[i+1]!='*')
+ {
+ q[j][0]=j+1;j++;
+ }
+ if(re[i]=='b'&&re[i+1]!='/'&&re[i+1]!='*')
+ {
+ q[j][1]=j+1;j++;
+ }
+ if(re[i]=='e'&&re[i+1]!='/'&&re[i+1]!='*')
+ {
+ q[j][2]=j+1;j++;
+ }
+ if(re[i]=='a'&& re[i+1]=='/'&&re[i+2]=='b')
+ {
+ q[j][2]=((j+1)*10)+(j+3);j++;
+ q[j][0]=j+1;j++;
+ q[j][2]=j+3;j++;
+ q[j][2]=j+1;j++;i=i+2;
+ }
+ if(re[i]=='b'&&re[i+1]=='/'&&re[i+2]=='a')
+ {
+ q[j][2]=((j+1)*10)+(j+3);j++;
+ q[j][1]=j+1;j++;
+ q[j][2]=j+3;j++;
+ q[j][0]=j+1;j++;
+ q[j][2]=j+1;j++;
+ i=i+2;
+ }
+ if(re[i]=='a'&&re[i+1]=='*')
+ {
+ q[j][2]=((j+1)*10)+(j+3);
+ j++;
+ q[j][0]=j+1;
+ j++;
+ q[j][2]=((j+1)*10)+(j-1);
+ j++;
+ }
+ if(re[i]=='b'&&re[i+1]=='*')
+ {
+ q[j][2]=((j+1)*10)+(j+3);
+ j++;
+ q[i][j]=j+1;
+ j++;
+ q[j][2]=((j+1)*10)+(j-1);
+ j++;
+ }
+ if(re[i]==')'&&re[i+1]=='*')
+ {
+ q[0][2]=((j+1)*10)+1;
+ q[j][2]=((j+1)*10)+1;
+ j++;
+ }
+ i++;
+ }
+ printf("Transition function:\n");
+ for(i=0;i<=j;i++)
+ {
+ if(q[i][0]!=0)
+ printf("\n q[%d,a]-->%d",i,q[i][0]);
+ if(q[i][1]!=0)
+ printf("\n q[%d,b]-->%d",i,q[i][1]);
+ if(q[i][2]!=0)
+ {
+ if(q[i][2]<10)
+ printf("\n q[%d,e]-->%d",i,q[i][2]);
+ else
+ printf("\n q[%d,e]-->%d & %d",i,q[i][2]/10,q[i][2]%10);
+ }
+ }
+}
+
+Output:
+ REGULAR EXPRESSION TO DFA
+Enter the regular expression : ab*b+
+ TRANSITION TABLE FOR DFA
+STATES a b
+ 0 1
+ 1 1, 2
+ 2 2
+Process returned 3 (0x3) execution time : 32.472 s
+Press any key to continue
+
+
+
+2. 
+minimized DFA for regular expression
+#include<stdio.h>
+#include<conio.h>
+#include<string.h>
+#include<process.h>
+void main()
+{
+ int t,i=0,j=0;
+ char ch[10],l[10],r[10];
+ printf("\n REGULAR EXPRESSION TO DFA\n");
+ printf("\nEnter the regular expression : ");
+ scanf("%s",ch);
+ t=strlen(ch);
+ while(i<=t)
+ {
+ if(ch[i]=='a'||ch[i]=='b')
+ {
+ l[j]=ch[i];
+ j++;
+ }
+ else if(ch[i]=='*')
+ {
+ r[j-1]=ch[i-1];
+ l[j-1]='\0';
+ j--;
+ }
+ else if(ch[i]=='+')
+ {
+ r[j]=ch[i-1];
+ }
+ i++;
+ }
+ printf("\n TRANSITION TABLE FOR DFA\n");
+ printf("\nSTATES \t a \tb\n");
+ for(i=0; i<=j; i++)
+ {
+ if(r[i]=='a')
+ {
+ if(l[i]=='a')
+ printf("\n %d\t %d,%d",i,i,i+1);
+ else if(l[i]=='b')
+ printf("\n %d\t%d, %d",i,i,i+1);
+ else
+ printf("\n %d\t %d",i,i);
+ }
+ else if(r[i]=='b')
+ {
+ if(l[i]=='b')
+ printf("\n %d\t\t%d, %d",i,i,i+1);
+ else if(l[i]=='a')
+ printf("\n %d\t %d\t%d",i,i+1,i);
+ else
+ printf("\n %d\t\t%d",i,i);
+ }
+ else
+ {
+ if(l[i]=='a')
+ printf("\n %d\t %d",i,i+1);
+ else if(l[i]=='b')
+ printf("\n %d\t\t%d",i,i+1);
+ else
+ printf("\n %d\t - \t - ",i);
+ }
+ }
+}
+Output:
+ REGULAR EXPRESSION TO DFA
+Enter the regular expression : ab*b+
+ TRANSITION TABLE FOR DFA
+STATES a b
+ 0 1
+ 1 1, 2
+ 2 2
+Process returned 3 (0x3) execution time : 32.472 s
+Press any key to continue
+
+
+
+
+3.
+implementation of lexical analyzer using LEX
+Program:
+/*lex program to count number of words*/
+%{
+#include<stdio.h>
+#include<string.h>
+int i = 0;
+%}
+%%
+([a-zA-Z0-9])* {i++;} 
+"\n" {printf("%d\n", i); i = 0;}
+%%
+int yywrap(void){}
+int main()
+{ 
+ yylex();
+ return 0;
+}
+
+Output:
+C:/LexProgram> flex Count.l
+C:/LexProgram> gcc lex.yy.c
+C:/LexProgram> a.exe
+Solitude Soul
+2
