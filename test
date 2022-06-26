@@ -210,3 +210,1077 @@ C:/LexProgram> gcc lex.yy.c
 C:/LexProgram> a.exe
 Solitude Soul
 2
+
+/*lex program to count vowel and consonants*/
+%{
+int vow_count=0;
+int const_count =0;
+%}
+%%
+[aeiouAEIOU] {vow_count++;}
+[a-zA-Z] {const_count++;}
+%%
+int yywrap(){}
+int main()
+{
+printf("Enter the string of vowels and consonents:");
+yylex();
+printf("Number of vowels are: %d\n", vow_count);
+printf("Number of consonants are: %d\n", const_count);
+return 0;
+}
+Output:
+C:/LexProgram> flex Count.l
+C:/LexProgram> gcc lex.yy.c
+C:/LexProgram> a.exe
+Enter the string of vowels and consonents : SolitudeSoul
+Number of vowels are: 6
+Number of consonants are:6
+
+
+
+
+
+4.
+Parser implementation using YACC
+Program
+Cal.l
+%{
+#include<stdio.h>
+#include "y.tab.h"
+extern int yylval;
+%}
+%%
+[0-9]+ {
+yylval=atoi(yytext);
+return NUMBER;
+}
+[\t] ;
+[\n] return 0;
+. return yytext[0];
+%%
+int yywrap()
+{
+return 1;
+}
+
+Cal.y
+%{
+/* Definition section */
+#include<stdio.h>
+int flag=0;
+%}
+%token NUMBER
+%left '+' '-'
+%left '*' '/' '%'
+%left '(' ')'
+/* Rule Section */
+%%
+ArithmeticExpression: E{
+printf("\nResult=%d\n", $$);
+return 0;
+};
+E:E'+'E {$$=$1+$3;}
+|E'-'E {$$=$1-$3;}
+|E'*'E {$$=$1*$3;}
+|E'/'E {$$=$1/$3;}
+|E'%'E {$$=$1%$3;}
+|'('E')' {$$=$2;}
+| NUMBER {$$=$1;}
+;
+%%
+void main()
+{
+printf("\nEnter the Arithmetic Expression:\n");
+yyparse();
+if(flag==0)
+printf("\nEntered arithmetic expression is Valid\n\n");
+}
+void yyerror()
+{
+printf("\nEntered arithmetic expression is Invalid\n\n");
+flag=1;
+}
+Output
+C:/LexProgram> flex Cal.l
+C:/LexProgram> bison -dy Cal.y
+C:/LexProgram> gcc lex.yy.c y.tab.c -o Cal.exe
+C:/LexProgram> Cal.exe
+Enter the Arithmetic Expression: 3 + 6
+Result=9
+
+
+
+
+5.
+Recursive Descent parser
+Program
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+char input[10];
+int i=0,error=0;
+void E();
+void T();
+void Eprime();
+void Tprime();
+void F();
+void main()
+{
+printf("Enter an arithmetic expression :\n");
+gets(input);
+E();
+if(strlen(input)==i&&error==0)
+printf("\nAccepted..!!!");
+else
+printf("\nRejected..!!!");
+}
+void E()
+{
+T();
+Eprime();
+}
+void Eprime()
+{
+if(input[i]=='+')
+{
+i++;
+T();
+Eprime();
+}
+}
+void T()
+{
+F();
+Tprime();
+}
+void Tprime()
+{
+if(input[i]=='*')
+{
+i++;
+F();
+Tprime();
+}
+}
+void F()
+{
+if(input[i]=='(')
+{
+i++;
+E();
+if(input[i]==')')
+i++;
+}
+else if(isalpha(input[i]))
+{
+i++;
+while(isalnum(input[i])||input[i]=='_')
+i++;
+}
+else
+error=1;
+}
+
+Output
+Enter an arithmetic expression :
+a+b*c
+Accepted..!!!
+Process returned 14 (0xE) execution time : 8.305 s
+Press any key to continue.
+
+
+
+
+6. 
+Operator Precedence parer
+Program
+#include<stdio.h>
+#include<string.h>
+char *input;
+int i=0;
+char lasthandle[6],stack[50],handles[][5]={")E(","E*E","E+E","i","E^E"};
+int top=0,l;
+char prec[9][9]={
+ /*input*/
+ /*stack + - * / ^ i ( ) $ */
+ /* + */ '>', '>','<','<','<','<','<','>','>',
+ /* - */ '>', '>','<','<','<','<','<','>','>',
+ /* * */ '>', '>','>','>','<','<','<','>','>',
+ /* / */ '>', '>','>','>','<','<','<','>','>',
+ /* ^ */ '>', '>','>','>','<','<','<','>','>',
+ /* i */ '>', '>','>','>','>','e','e','>','>',
+ /* ( */ '<', '<','<','<','<','<','<','>','e',
+ /* ) */ '>', '>','>','>','>','e','e','>','>',
+ /* $ */ '<', '<','<','<','<','<','<','<','>',
+ };
+int getindex(char c)
+{
+switch(c)
+ {
+ case '+':return 0;
+ case '-':return 1;
+ case '*':return 2;
+ case '/':return 3;
+ case '^':return 4;
+ case 'i':return 5;
+ case '(':return 6;
+ case ')':return 7;
+ case '$':return 8;
+ }
+}
+int shift()
+{
+stack[++top]=*(input+i++);
+stack[top+1]='\0';
+}
+int reduce()
+{
+int i,len,found,t;
+for(i=0;i<5;i++)//selecting handles
+ {
+ len=strlen(handles[i]);
+ if(stack[top]==handles[i][0]&&top+1>=len)
+ {
+ found=1;
+ for(t=0;t<len;t++)
+ {
+ if(stack[top-t]!=handles[i][t])
+ {
+ found=0;
+ break;
+ }
+ }
+ if(found==1)
+ {
+ stack[top-t+1]='E';
+ top=top-t+1;
+ strcpy(lasthandle,handles[i]);
+ stack[top+1]='\0';
+ return 1;//successful reduction
+ }
+ }
+ }
+return 0;
+}
+void dispstack()
+{
+int j;
+for(j=0;j<=top;j++)
+ printf("%c",stack[j]);
+}
+void dispinput()
+{
+int j;
+for(j=i;j<l;j++)
+ printf("%c",*(input+j));
+}
+void main()
+{
+int j;
+input=(char*)malloc(50*sizeof(char));
+printf("\nEnter the string : ");
+scanf("%s",input);
+input=strcat(input,"$");
+l=strlen(input);
+strcpy(stack,"$");
+printf("\nSTACK\tINPUT\tACTION");
+while(i<=l)
+{
+shift();
+printf("\n");
+dispstack();
+printf("\t");
+dispinput();
+printf("\tShift");
+if(prec[getindex(stack[top])][getindex(input[i])]=='>')
+{
+while(reduce())
+{
+printf("\n");
+dispstack();
+printf("\t");
+dispinput();
+printf("\tReduced: E->%s",lasthandle);
+}
+}
+}
+if(strcmp(stack,"$E$")==0)
+ printf("\nAccepted;");
+else
+ printf("\nNot Accepted;");
+}
+
+OUTPUT
+Enter the string : i*(i+i)*i
+STACK INPUT ACTION
+$i *(i+i)*i$ Shift
+$E *(i+i)*i$ Reduced: E->i
+$E* (i+i)*i$ Shift
+$E*( i+i)*i$ Shift
+$E*(i +i)*i$ Shift
+$E*(E +i)*i$ Reduced: E->i
+$E*(E+ i)*i$ Shift
+$E*(E+I )*i$ Shift
+$E*(E+E )*i$ Reduced: E->i
+$E*(E )*i$ Reduced: E->E+E
+$E*(E) *i$ Shift
+$E*E *i$ Reduced: E->)E(
+$E *i$ Reduced: E->E*E
+$E* i$ Shift
+$E*i $ Shift
+$E*E $ Reduced: E->i
+$E $ Reduced: E->E*E
+$E$ Shift
+$E$ Shift
+Accepted;
+Process returned 10 (0xA) execution time : 28.035 s
+Press any key to continue.
+
+
+
+
+
+7.
+Symbol Table
+Program
+#include<stdio.h>
+#include<ctype.h>
+#include<stdlib.h>
+#include<string.h>
+#include<math.h>
+void main()
+{
+int i=0,j=0,x=0,n;
+void *p,*add[5];
+char ch,srch,b[15],d[15],c;
+printf("Expression terminated by $:");
+while((c=getchar())!='$')
+{
+ b[i]=c;
+ i++;
+}
+n=i-1;
+printf("Given Expression:");
+i=0;
+while(i<=n)
+{
+ printf("%c",b[i]);
+ i++;
+}
+printf("\n Symbol Table\n");
+printf("Symbol \t addr \t type");
+while(j<=n)
+{
+ c=b[j];
+ if(isalpha(toascii(c)))
+ {
+ p=malloc(c);
+ add[x]=p;
+ d[x]=c;
+ printf("\n%c \t %d \t identifier\n",c,p);
+ x++;
+ j++;
+ }
+ else
+ {
+ ch=c;
+ if(ch=='+'||ch=='-'||ch=='*'||ch=='=')
+ {
+ p=malloc(ch);
+ add[x]=p;
+ d[x]=ch;
+ printf("\n %c \t %d \t operator\n",ch,p);
+ x++;
+ j++;
+ }}}}
+Output:
+Expression terminated by $:A+B+C=D$
+Given Expression:A+B+C=D
+Symbol Table
+Symbol addr type
+A 201832 identifier
++ 201912 operator
+B 201968 identifier
++ 202048 operator
+C 202104 identifier
+= 202184 operator
+D 202256 identifier
+Process returned 7 (0x7) execution time : 14.026 s
+Press any key to continue.
+
+
+
+
+8.
+Shift reduce parsing
+Program
+#include<stdio.h>
+char ip_sym[15],stack[15];
+int ip_ptr=0,st_ptr=0,len,i;
+char temp[2],temp2[2];
+char act[15];
+void check();
+void main(){
+printf("\n\t\t SHIFT REDUCE PARSER\n");
+printf("\n GRAMMER\n");
+printf("\n E->E+E\n E->E/E");
+printf("\n E->E*E\n E->a/b");
+printf("\n Enter the input symbol: ");
+gets(ip_sym);
+printf("\n\t stack implementation table");
+printf("\n stack \t\t input symbol\t\t action");
+printf("\n________\t\t____________\t\t____________\n");
+printf("\n $\t\t%s$\t\t\t--",ip_sym);
+strcpy(act,"shift ");
+temp[0]=ip_sym[ip_ptr];
+temp[1]='\0';
+strcat(act,temp);
+len=strlen(ip_sym);
+for(i=0;i<=len-1;i++){
+stack[st_ptr]=ip_sym[ip_ptr];
+stack[st_ptr+1]='\0';
+ip_sym[ip_ptr]=' ';
+ip_ptr++;
+printf("\n $%s\t\t%s$\t\t\t%s",stack,ip_sym,act);
+strcpy(act,"shift ");
+temp[0]=ip_sym[ip_ptr];
+temp[1]='\0';
+strcat(act,temp);
+check();
+st_ptr++;
+}
+st_ptr++;
+check();
+}
+void check(){
+int flag=0;
+temp2[0]=stack[st_ptr];
+temp2[1]='\0';
+if((!strcmpi(temp2,"a"))||(!strcmpi(temp2,"b"))){
+stack[st_ptr]='E';
+if(!strcmpi(temp2,"a"))
+printf("\n $%s\t\t%s$\t\t\tE->a",stack,ip_sym);
+else
+printf("\n $%s\t\t%s$\t\t\tE->b",stack,ip_sym);
+flag=1;
+}
+if((!strcmpi(temp2,"+"))||(strcmpi(temp2,"*"))||(!strcmpi(temp2,"/")))
+{
+flag=1;
+}
+if((!strcmpi(stack,"E+E"))||(!strcmpi(stack,"E\E"))||(!strcmpi(stack,"E*E")))
+{
+strcpy(stack,"E");
+st_ptr=0;
+if(!strcmpi(stack,"E+E"))
+printf("\n $%s\t\t%s$\t\t\tE->E+E",stack,ip_sym);
+else
+if(!strcmpi(stack,"E\E"))
+printf("\n $%s\t\t%s$\t\t\tE->E\E",stack,ip_sym);
+else
+if(!strcmpi(stack,"E*E"))
+printf("\n $%s\t\t%s$\t\t\tE->E*E",stack,ip_sym);
+else
+printf("\n $%s\t\t%s$\t\t\tE->E+E",stack,ip_sym);
+flag=1;
+}
+if(!strcmpi(stack,"E")&&ip_ptr==len)
+{
+printf("\n $%s\t\t%s$\t\t\tACCEPT",stack,ip_sym);
+exit(0);
+}
+if(flag==0){
+printf("\n%s\t\t\t%s\t\t reject",stack,ip_sym);
+exit(0);
+}
+return;
+}
+Output
+ SHIFT REDUCE PARSER
+GRAMMER
+E->E+E
+E->E/E
+E->E*E
+E->a/b
+Enter the input symbol: a+b
+ stack implementation table
+stack input symbol action
+________ ____________ ____________
+$ a+b$ --
+$a +b$ shift a
+$E +b$ E->a
+$E+ b$ shift +
+$E+b $ shift b
+$E+E $ E->b
+$E $ E->E+E
+$E $ ACCEPT
+Process returned 0 (0x0) execution time : 14.359 s
+Press any key to continue.
+
+
+
+
+
+9.
+IR Parser
+Program
+#include <iostream.h>
+#include <conio.h>
+#include <string.h>
+#define MPd 20 /* Max no of Productions */
+#define Mt 20 /* Max no of terminal symbols */
+#define MNt 10 /* Max no of Nonterminal symbols */
+#define MSt 30 /* Max no of States */
+class LR0Item
+{
+public:
+ char Item[MPd][30];
+ int NIt;
+ int Goto[MNt + Mt];
+ LR0Item ();
+ void Add (char []);
+ int operator == (LR0Item);
+};
+void LR0Item::LR0Item ()
+{
+ for (int i=0; i<Mt+MNt; i++)
+ Goto [i] = -1;
+}
+void LR0Item::Add (char s[])
+{
+ for (int i=0; i<NIt; i++)
+ {
+ if (strcmp (Item[i], s) == 0)
+ return;
+ if (strcmp (Item[i], s) > 0)
+ {
+ for (int j=NIt; j>i; j--)
+ strcpy (Item[j], Item[j - 1]);
+ strcpy (Item[i], s);
+ NIt++;
+ return;
+ } }
+ strcpy (Item[NIt++], s);
+}
+int LR0Item::operator == (LR0Item S1)
+{
+ if (NIt != S1.NIt) return 0;
+ for (int i=0; i<NIt; i++)
+ 
+{
+ if (strcmp (Item[i], S1.Item[i]) != 0)
+ return 0;
+ }
+ return 1;
+}
+int NSt, NPd;
+char Ter[Mt], NTer[MNt];
+char Prd[MPd][20];
+char AxnTbl[MSt][Mt][5], GotoTbl[MSt][MNt][5];
+char Follow[MNt][Mt];
+LR0Item Set[MSt];
+inline int IsCap (char c)
+{
+ if (c >= 'A' && c <= 'Z') return 1;
+ return 0;
+}
+void ToString (char c[], int i)
+{
+ if (i < 10)
+ {
+ c[0] = (char)(i + '0');
+ c[1] = '\0';
+ }
+ else
+ {
+ c[0] = (char)((i / 10) + '0');
+ c[1] = (char)((i % 10) + '0');
+ c[2] = '\0';
+ }}
+void Adds (char s1[], char s2[])
+{
+ for (int i=0; s2[i] != '\0'; i++)
+ {
+ 
+for (int j=0; s1[j] != '\0'; j++)
+ if (s1[j] == s2[i]) break;
+ if (s1[j] == '\0')
+ {
+ s1[j++] = s2[i];
+ s1[j] = '\0';
+ } }}
+void Add (char s1[], char c)
+{
+ char s[2];
+ s[0] = c;
+ s[1] = '\0';
+ Adds (s1, s);
+}
+int GetTer (char c)
+{
+ for (int i=0; Ter[i] != '\0' && Ter[i] != c; i++);
+ if (Ter[i] == '\0') return -1;
+ return i;
+}
+int GetNTer (char c)
+{
+ for (int i=0; NTer[i] != '\0' && NTer[i] != c; i++);
+ if (NTer[i] == '\0') return -1;
+ return i;
+}
+void Closure (LR0Item *It)
+{
+ char s[MNt] = "";
+ char s1[30];
+ int i, j, k;
+ for (j=0; j<It -> NIt; j++)
+ {
+ for (i=3; It -> Item[j][i] !='\0'; i++)
+ if (It -> Item[j][i] == '.')
+ Add (s, It -> Item[j][i + 1]);
+ }
+ for (i = 0; s[i] != '\0'; i++)
+ 
+{
+ for (j=0; j<NPd; j++)
+ if (Prd[j][0] == s[i])
+ {
+ for (k=0; k<3; k++)
+ s1[k] = Prd[j][k];
+ s1[3] = '.';
+ if (GetNTer (Prd[j][3]) != -1)
+ Add (s, Prd[j][3]);
+ for (k=3; Prd[j][k] != '\0'; k++)
+ s1[k + 1] = Prd[j][k];
+ s1[k+1] = '\0';
+ It -> Add (s1);
+ } }}
+void ConstColl ()
+{
+ char s[20], Sym[MNt + Mt], c;
+ strcpy (Sym, NTer);
+ strcat (Sym, Ter);
+ for (int i=0; i<3; i++)
+ s[i] = Prd[0][i];
+ s[3] = '.';
+ s[4] = Prd[0][3];
+ s[5] = '\0';
+ Set[0].NIt = 0;
+ Set[0].Add (s);
+ Closure (&Set[0]);
+ NSt = 1;
+ for (i=0; i<NSt; i++)
+ {
+ for (int j=0; j<Sym[j] != '\0'; j++)
+ {
+ Set[NSt].NIt = 0;
+ for (int k=0; k<Set[i].NIt; k++)
+ {
+ for (int l=0; Set[i].Item[k][l] != '.'; l++)
+ s[l] = Set[i].Item[k][l];
+ if (Set[i].Item[k][l + 1] == Sym[j])
+ 
+{
+ s[l] = Set[i].Item[k][l + 1];
+ s[++l] = '.';
+ l++;
+ for (;Set[i].Item[k][l] != '\0'; l++)
+ s[l] = Set[i].Item[k][l];
+ s[l] = '\0';
+ Set[NSt].Add (s);
+ } }
+ if (Set[NSt].NIt > 0)
+ {
+ Closure (&Set[NSt]);
+ int Fnd = -1;
+ for (k=0; k<NSt; k++)
+ if (Set[k] == Set[NSt])
+ Fnd = k;
+ if (Fnd == -1)
+ Fnd = NSt++;
+ int n1 = GetNTer (Sym[j]);
+ int n2 = GetTer (Sym[j]);
+ if (n1 != -1)
+ Set[i].Goto[n1] = Fnd;
+ else if (n2 != -1)
+ Set[i].Goto[MNt + n2] = Fnd;
+ } } }}
+void Init ()
+{
+ for (int i=0; i<MSt; i++)
+ {
+ for (int j=0; j<MNt; j++)
+ AxnTbl[i][j][0] = '\0';
+ for (j=0; j<Mt; j++)
+ GotoTbl[i][j][0] = '\0';
+ }
+ for (i=0; i<MNt; i++)
+ Follow[i][0] = '\0';
+}
+void FindFollow ()
+{
+ int n1;
+ Add (Ter, '$');
+ strcpy (Follow[0], "$");
+ for (int Cnt=0; NTer[Cnt] != '\0'; Cnt++)
+ {
+ for (int i=0; i<NPd; i++)
+ {
+ int n1;
+ for (int j=3; Prd[i][j] != '\0'; j++)
+ {
+ if ((n1 = GetNTer (Prd[i][j])) != -1)
+ Add (Follow[n1], Prd[i][j+1]);
+ }
+ if ((n1 = GetNTer (Prd[i][j - 1])) != -1)
+ Adds (Follow[n1], Follow[GetNTer (Prd[i][0])]);
+ } }
+ for (int i=0; NTer[i] != '\0'; i++)
+ {
+ char s[30] ="";
+ for (int j=0; Follow[i][j] != '\0'; j++)
+ if (GetTer (Follow[i][j]) != -1)
+ Add (s, Follow[i][j]);
+ strcpy (Follow[i], s);
+}}
+void ConstTable ()
+{
+ char s[30], s1[5], s2[5];
+ int n;
+ for (int i=0; i<NSt; i++)
+ {
+ for (int j=0; j<Set[i].NIt; j++)
+ {
+ for (int k=0; Set[i].Item[j][k] != '.'; k++);
+ k++;
+ if (Set[i].Item[j][k] == '\0')
+ {
+ strcpy (s, Set[i].Item[j]);
+ 
+s[strlen (Set[i].Item[j]) - 1] = '\0';
+ for (int l=0; l<NPd; l++)
+ {
+ if (strcmp (s, Prd[l]) == 0)
+ {
+ if (l == 0)
+ {
+ strcpy (AxnTbl[i][GetTer ('$')], "acc");
+ break;
+ }
+ n = GetNTer (s[0]);
+ for (int m=0; Follow[n][m] != '\0'; m++)
+ {
+ strcpy (s1, "r");
+ ToString (s2, l);
+ strcat (s1, s2);
+ strcpy (AxnTbl[i][GetTer (Follow[n][m])], s1);
+ } } } }
+ else if ((n = GetTer (Set[i].Item[j][k])) != -1)
+ {
+ strcpy (s1, "s");
+ ToString (s2, Set[i].Goto[MNt + n]);
+ strcat (s1, s2);
+ strcpy (AxnTbl[i][n], s1);
+ }
+ else if ((n = GetNTer (Set[i].Item[j][k])) != -1)
+ {
+ ToString (GotoTbl[i][n], Set[i].Goto[n]);
+ } } }}
+void Prints (char s[])
+{
+ cout << s;
+ for (int i = strlen(s); i<5; i++) cout << " ";
+}
+void main ()
+{
+ clrscr ();
+ 
+char s[30];
+cout << "Enter the augmented grammar productions followed by 
+\"end\"\n";
+ while (1)
+ {
+ cout << "(" << NPd << ") ";
+ cin >> s;
+ if (!strcmp (s, "end")) break;
+ Add (NTer, s[0]);
+ strcpy (Prd[NPd], s);
+ Add (NTer, Prd[NPd][0]);
+ for (int i=3; Prd[NPd][i] != '\0'; i++)
+ if (!IsCap (Prd[NPd][i]))
+ Add (Ter, Prd[NPd][i]);
+ NPd++;
+ }
+ Init ();
+ ConstColl ();
+ FindFollow ();
+ ConstTable ();
+ clrscr ();
+ cout << "\t\tSLR Parsing Table\n";
+ cout << "\n\t Action";
+ for (int i=0; Ter[i] != '\0'; i++) cout << " ";
+ cout << "Goto\n\n\t";
+ for (i=0; Ter[i] != '\0'; i++) cout << Ter[i] << " ";
+ cout << "\t";
+ for (i=1; NTer[i] != '\0'; i++) cout << NTer[i] << " ";
+ cout << "\n";
+ for (i=0; i<NSt; i++)
+ {
+ cout << "\n" << i << "\t";
+ for (int j=0; Ter[j] != '\0'; j++)
+ Prints (AxnTbl[i][j]);
+ cout << "\t";
+ for (j=1; NTer[j] != '\0'; j++)
+ Prints (GotoTbl[i][j]);
+ }
+ getch ();
+}
+Output
+(0) P->E
+(1) E->E+T
+(2) E->T
+(3) T->T*F
+(4) T->F
+(5) F->(E)
+(6) F->i
+(7) end
+ SLR Parsing Table
+ ____________________
+ Action Goto
+ + * ( ) i $ E T F
+0 s4 s5 1 2 3
+1 s6 acc
+2 r2 s7 r2 r2
+3 r4 r4 r4 r4
+4 s4 s5 8 2 3
+5 r6 r6 r6 r6
+6 s4 s5 9 3
+7 s4 s5 10
+8 s6 s11
+9 r1 s7 r1 r1
+10 r3 r3 r3 r3
+11 r5 r5 r5 r5
+
+
+
+
+
+10.
+Intermediate code generation
+Program
+#include<stdio.h>
+#include<ctype.h>
+#include<stdlib.h>
+#include<conio.h>
+#include<string.h>
+void small();
+void dove(int );
+int p[5]={0,1,2,3,4},c=1,i,k,l,m,pi;
+char sw[5]={'=','-','+','/','*'},j[20],a[5],b[5],ch[2];
+void main()
+{
+ clrscr();
+ printf("Enter the expression:");
+ scanf("%s",j);
+ printf("\n\n\tThe Intermediate code is:\n");
+ small();
+}
+void dove(int i)
+{
+a[0]='\0';b[0]='\0';
+I f(!isdigit(j[i+2]) && !isdigit(j[i-2]))
+ {
+ a[0]=j[i-1];
+ b[0]=j[i+1];
+ }
+ if(isdigit(j[i+2]))
+ {
+ a[0]=j[i-1];
+ b[0]='t';
+ b[1]=j[i+2];
+ }
+ if(isdigit(j[i-2]))
+ { b[0]=j[i+1];
+ a[0]='t';
+ a[1]=j[i-2];
+ b[1]='\0'; }
+ if(isdigit(j[i+2]) && isdigit(j[i-2]))
+ { a[0]='t';
+ b[0]='t';
+ a[1]=j[i-2];
+ b[1]=j[i+2];
+ itoa(c,ch,10);
+ j[i+2]=j[i-2]=ch[0]; }
+ if(j[i]=='*')
+ printf("\tt%d=%s*%s\n",c,a,b);
+ if(j[i]=='/')
+ printf("\tt%d=%s/%s\n",c,a,b);
+ if(j[i]=='+')
+ printf("\tt%d=%s+%s\n",c,a,b);
+ if(j[i]=='-')
+ printf("\tt%d=%s-%s\n",c,a,b);
+ if(j[i]=='=')
+ printf("\t%c=t%d",j[i-1],--c);
+ itoa(c,ch,10);
+ j[i]=ch[0];
+ c++;
+ small();
+}
+void small()
+{ pi=0;l=0;
+ for(i=0;i<strlen(j);i++)
+ { for(m=0;m<5;m++)
+ if(j[i]==sw[m])
+ if(pi<=p[m])
+ {
+ pi=p[m];
+ l=1;
+ k=i;
+ } }
+ if(l==1)
+ dove(k);
+ else
+ {
+ getch();
+ exit (0);
+ } } 
+Output
+Enter the expression:
+a=b+c*d-e/f
+ The Intermediate code is:
+ t1=c*d
+ t2=e/f
+ t3=b+t1
+ t4=t1-t2
+ a=t4
+ 
+ 11.
+ Code Optimization
+ 
+ Program
+#include<stdio.h>
+#include<conio.h>
+#include<string.h>
+struct op
+{
+char l;
+char r[20];
+}op[10],pr[10];
+void main()
+{
+int a,i,k,j,n,z=0,m,q;
+char *p,*l;
+char temp,t;
+char *tem;
+printf("Enter no of values: ");
+scanf("%d",&n);
+for(i=0;i<n;i++)
+{
+printf("left: ");
+op[i].l=getche();
+printf("\t\tright: ");
+scanf("%s",op[i].r);
+}
+printf("intermediate Code\n") ;
+for(i=0;i<n;i++)
+{
+printf("%c=",op[i].l);
+printf("%s\n",op[i].r);
+}
+for(i=0;i<n-1;i++)
+{
+temp=op[i].l;
+for(j=0;j<n;j++)
+{
+p=strchr(op[j].r,temp);
+if(p)
+{
+pr[z].l=op[i].l;
+strcpy(pr[z].r,op[i].r);
+z++ ;
+}} }
+pr[z].l=op[n-1].l;
+strcpy(pr[z].r,op[n-1].r);
+z++;
+printf("\nafter dead code elimination\n");
+for(k=0;k<z;k++)
+{
+printf("%c\t=",pr[k].l);
+printf("%s\n",pr[k].r);
+}
+//sub expression elimination
+for(m=0;m<z;m++)
+{
+tem=pr[m].r;
+for(j=m+1;j<z;j++)
+{
+p=strstr(tem,pr[j].r);
+if(p)
+{
+t=pr[j].l;
+pr[j].l=pr[m].l ;
+for(i=0;i<z;i++)
+{
+l=strchr(pr[i].r,t) ;
+if(l)
+{
+a=l-pr[i].r;
+//printf("pos: %d",a);
+pr[i].r[a]=pr[m].l;
+}}}}}
+printf("eliminate common expression\n");
+for(i=0;i<z;i++)
+{
+printf("%c\t=",pr[i].l);
+printf("%s\n",pr[i].r);
+}
+// duplicate production elimination
+for(i=0;i<z;i++)
+{
+for(j=i+1;j<z;j++)
+{
+q=strcmp(pr[i].r,pr[j].r);
+if((pr[i].l==pr[j].l)&&!q)
+{
+ pr[i].l='\0';
+ strcpy(pr[i].r,'\0');
+}}
+}
+printf("optimized code");
+for(i=0;i<z;i++)
+{
+if(pr[i].l!='\0')
+{
+printf("%c=",pr[i].l);
+printf("%s\n",pr[i].r);
+}
+}
+getch();
+}
+Output
+Enter no of values: 5
+left: a right: 9
+left: b right: c+d
+left: e right: c+d
+left: f right: b+e
+left: r right: f
+intermediate Code
+a=9
+b=c+d
+e=c+d
+f=b+e
+r=f
+after dead code elimination
+b =c+d
+e =c+d
+f =b+e
+r =f
+eliminate common expression
+b =c+d
+b =c+d
+f =b+b
+r =f
+Process returned -1073741819 (0xC0000005) execution time : 49.268 
+s
+Press any key to continue
